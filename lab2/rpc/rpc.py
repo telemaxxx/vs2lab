@@ -30,7 +30,9 @@ class Client:
         assert isinstance(db_list, DBList)
         msglst = (constRPC.APPEND, data, db_list)  # message payload
         self.chan.send_to(self.server, msglst)  # send msg to server
-        threading.Thread(target=self.wait_for_response, args=(callback,)).start()
+        waitthread = threading.Thread(target=self.wait_for_response, args=(callback,))
+        waitthread.start()
+        return waitthread
 
     def wait_for_response(self, callback):
         while True:
@@ -60,6 +62,7 @@ class Server:
                 client = msgreq[0]  # see who is the caller
                 msgrpc = msgreq[1]  # fetch call & parameters
                 if constRPC.APPEND == msgrpc[0]:  # check what is being requested
+                    print("Received APPEND request from client")
                     self.chan.send_to({client}, "ACK")  # send ack immediately
                     time.sleep(10)  # wait 10 seconds
                     result = self.append(msgrpc[1], msgrpc[2])
