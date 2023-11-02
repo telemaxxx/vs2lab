@@ -90,27 +90,40 @@ class Client:
 
     def callall(self):
         """ Call server for all phonebooks """
+        self.logger.info("Client calling for all phonebooks.")
         self.sock.send("GETALL".encode('ascii'))  # send encoded string as data
         data = self.sock.recv(1024)  # receive the response
         phonebook_entries = data.decode('ascii').split(';')[:-1]  # split the response into phonebooks
+        phonebook_list = []
+        print(f"{'-'*60}")
+        print(f"| {'Name'.ljust(20)} | {'Number'.ljust(15)} |")
+        print(f"{'-'*60}")
         for phonenumber in phonebook_entries:
             name, number = phonenumber.split('=')
-            print(f"{name}: {number}")
+            phonebook_list.append((name, number))
+            print(f"| {name.ljust(20)} | {number.ljust(15)} |")
+        print(f"{'-'*60}")
         self.sock.close()
         self.logger.info("Client down.")
+        return phonebook_list
 
     def callnumber(self, name):
         """ Call server for a single phone number """
+        self.logger.info(f"Client calling for phone number of {name}.")
         self.sock.send(("GET " + name).encode('ascii'))  # send encoded string as data
         data = self.sock.recv(1024)  # receive the response
         response = data.decode('ascii')
+        returnvalue = response
         if response.startswith("ERROR="):
             print(response[6:])
+            return (name, None)
         else:
             name, number = response.split('=')
-            print(f"{name}: {number}")
+            print(f"| {name.ljust(20)} | {number.ljust(15)} |")
+            returnvalue = (name, number)
         self.sock.close()
         self.logger.info("Client down.")
+        return returnvalue
 
     def close(self):
         """ Close socket """
