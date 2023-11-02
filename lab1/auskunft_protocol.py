@@ -52,14 +52,19 @@ class Server:
                         break  # stop if client stopped
                     command = data.decode('ascii')
                     if command == "GETALL":
+                        all_numbers = ""
                         for name, number in phonebook.items():
-                            connection.send((name + "=" + number + ";").encode('ascii'))
+                            all_numbers += (name + "=" + number + ";")
+                        connection.send(all_numbers.encode('ascii'))
                     elif command.startswith("GET "):
                         name = command[4:]
                         if name in phonebook:
                             connection.send((name + "=" + phonebook[name] + ";").encode('ascii'))
                         else:
                             connection.send(("ERROR=Name not found;").encode('ascii'))
+                    elif command == "EXIT":
+                        self._serving = False
+                        break
                     else:
                         connection.send(("ERROR=Invalid command;").encode('ascii'))
                 connection.close()
@@ -92,6 +97,7 @@ class Client:
         """ Call server for all phonebooks """
         self.logger.info("Client calling for all phonebooks.")
         self.sock.send("GETALL".encode('ascii'))  # send encoded string as data
+
         data = self.sock.recv(1024)  # receive the response
         phonebook_entries = data.decode('ascii').split(';')[:-1]  # split the response into phonebooks
         phonebook_list = []
@@ -119,6 +125,7 @@ class Client:
             return (name, None)
         else:
             name, number = response.split('=')
+            number = number.rstrip(';')  # remove semicolon from the end of the number
             print(f"| {name.ljust(20)} | {number.ljust(15)} |")
             returnvalue = (name, number)
         self.sock.close()

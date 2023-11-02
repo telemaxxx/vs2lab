@@ -12,7 +12,7 @@ from context import lab_logging
 lab_logging.setup(stream_level=logging.INFO)
 
 
-class TestEchoService(unittest.TestCase):
+class TestAuskunftService(unittest.TestCase):
     """The test"""
     _server = auskunft_protocol.Server()  # create single server in class variable
     _server_thread = threading.Thread(target=_server.serve)  # define thread for running server
@@ -25,10 +25,15 @@ class TestEchoService(unittest.TestCase):
         super().setUp()
         self.client = auskunft_protocol.Client()  # create new client for each test
 
-    def test_srv_get(self):  # each test_* function is a test
-        """Test simple call"""
-        msg = self.client.call("Hello VS2Lab")
-        self.assertEqual(msg, 'Hello VS2Lab*')
+    def test_srv_getall(self):
+        """Test get all phonebooks"""
+        phonebooks = self.client.callall()
+        self.assertIsInstance(phonebooks, list)
+
+    def test_srv_getnumber(self):
+        """Test get a single phone number"""
+        response = self.client.callnumber("Grace")
+        self.assertEqual(response, ('Grace', '6677889900'))
 
     def tearDown(self):
         self.client.close()  # terminate client after each test
