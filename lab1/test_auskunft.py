@@ -15,7 +15,8 @@ lab_logging.setup(stream_level=logging.INFO)
 class TestAuskunftService(unittest.TestCase):
     """The test"""
     _server = auskunft_protocol.Server()  # create single server in class variable
-    _server_thread = threading.Thread(target=_server.serve)  # define thread for running server
+    # define thread for running server
+    _server_thread = threading.Thread(target=_server.serve)
 
     @classmethod
     def setUpClass(cls):
@@ -30,6 +31,21 @@ class TestAuskunftService(unittest.TestCase):
         phonebooks = self.client.callall()
         self.assertIsInstance(phonebooks, list)
 
+    def test_srv_getall_values(self):
+        """Test get all phonebooks"""
+        phonebooks = self.client.callall()
+        phonevalues = [('John', '1234567890'),
+                       ('Jane', '0987654321'),
+                       ('Bob', '1122334455'),
+                       ('Alice', '5566778899'),
+                       ('Charlie', '2233445566'),
+                       ('David', '3344556677'),
+                       ('Eve', '4455667788'),
+                       ('Frank', '5566778899'),
+                       ('Grace', '6677889900'),
+                       ('Heidi', '7788990011')]
+        self.assertEqual(phonebooks, phonevalues)
+
     def test_srv_getnumber(self):
         """Test get a single phone number"""
         response = self.client.callnumber("Grace")
@@ -40,7 +56,8 @@ class TestAuskunftService(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls._server._serving = False  # break out of server loop. pylint: disable=protected-access
+        # break out of server loop. pylint: disable=protected-access
+        cls._server._serving = False
         cls._server_thread.join()  # wait for server thread to terminate
 
 
