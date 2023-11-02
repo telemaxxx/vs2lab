@@ -32,6 +32,9 @@ class Client:
         self.chan.send_to(self.server, msglst)  # send msg to server
         waitthread = threading.Thread(target=self.wait_for_response, args=(callback,))
         waitthread.start()
+        for i in range(0, 20):
+            time.sleep(1)
+            print("doing other things")
         return waitthread
 
     def wait_for_response(self, callback):
