@@ -25,19 +25,44 @@ class Server:
         self._logger.info("Server bound to socket " + str(self.sock))
 
     def serve(self):
-        """ Serve echo """
+
+        phonebook = {
+            "John": "1234567890",
+            "Jane": "0987654321",
+            "Bob": "1122334455",
+            "Alice": "5566778899",
+            "Charlie": "2233445566",
+            "David": "3344556677",
+            "Eve": "4455667788",
+            "Frank": "5566778899",
+            "Grace": "6677889900",
+            "Heidi": "7788990011"
+        }
+
+        """ Serve phonebook """
         self.sock.listen(1)
 
-        while self._serving:  # as long as _serving (checked after connections or socket timeouts)
+        while self._serving:
             try:
                 # pylint: disable=unused-variable
                 (connection, address) = self.sock.accept()  # returns new socket and address of client
-                while True:  # forever
+                while True:
                     data = connection.recv(1024)  # receive data from client
                     if not data:
                         break  # stop if client stopped
-                    connection.send(data + "*".encode('ascii'))  # return sent data plus an "*"
-                connection.close()  # close the connection
+                    command = data.decode('ascii')
+                    if command == "GETALL":
+                        for name, number in phonebook.items():
+                            connection.send((name + "=" + number + ";").encode('ascii'))
+                    elif command.startswith("GET "):
+                        name = command[4:]
+                        if name in phonebook:
+                            connection.send((name + "=" + phonebook[name] + ";").encode('ascii'))
+                        else:
+                            connection.send(("ERROR=Name not found;").encode('ascii'))
+                    else:
+                        connection.send(("ERROR=Invalid command;").encode('ascii'))
+                connection.close()
             except socket.timeout:
                 pass  # ignore timeouts
         self.sock.close()
@@ -62,6 +87,30 @@ class Client:
         self.sock.close()  # close the connection
         self.logger.info("Client down.")
         return msg_out
+
+    def callall(self):
+        """ Call server for all phonebooks """
+        self.sock.send("GETALL".encode('ascii'))  # send encoded string as data
+        data = self.sock.recv(1024)  # receive the response
+        phonebook_entries = data.decode('ascii').split(';')[:-1]  # split the response into phonebooks
+        for phonenumber in phonebook_entries:
+            name, number = phonenumber.split('=')
+            print(f"{name}: {number}")
+        self.sock.close()
+        self.logger.info("Client down.")
+
+    def callnumber(self, name):
+        """ Call server for a single phone number """
+        self.sock.send(("GET " + name).encode('ascii'))  # send encoded string as data
+        data = self.sock.recv(1024)  # receive the response
+        response = data.decode('ascii')
+        if response.startswith("ERROR="):
+            print(response[6:])
+        else:
+            name, number = response.split('=')
+            print(f"{name}: {number}")
+        self.sock.close()
+        self.logger.info("Client down.")
 
     def close(self):
         """ Close socket """
