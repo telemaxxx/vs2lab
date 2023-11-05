@@ -1,0 +1,17 @@
+session_name: "pipethingy"
+windows:
+  - window_name: splitter
+    layout: tiled
+    panes:
+      - pipenv run python runsplitter.py
+  - window_name: mapper
+    layout: tiled
+    panes:
+      - pipenv run python runmapper.py
+      - pipenv run python runmapper.py
+      - pipenv run python runmapper.py
+  - window_name: reducer
+    layout: tiled
+    panes:
+      - pipenv run python runreducer.py 0
+      - pipenv run python runreducer.py 1
