@@ -7,11 +7,12 @@ windows:
   - window_name: mapper
     layout: tiled
     panes:
-      - pipenv run python runmapper.py
-      - pipenv run python runmapper.py
-      - pipenv run python runmapper.py
+      - pipenv run python runmapper.py 0
+      - pipenv run python runmapper.py 1
+      - pipenv run python runmapper.py 2
   - window_name: reducer
     layout: tiled
     panes:
       - pipenv run python runreducer.py 0
       - pipenv run python runreducer.py 1
+
