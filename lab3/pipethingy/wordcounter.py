@@ -13,6 +13,22 @@ mapperports = [
 SPLITTERADDRESS = "tcp://127.0.0.1:5556"
 
 
+def string_to_integer_hash(input_string):
+    # Create a SHA-256 hash object
+    sha256 = hashlib.sha256()
+
+    # Update the hash object with the input string's bytes
+    sha256.update(input_string.encode('utf-8'))
+
+    # Get the hexadecimal representation of the hash
+    hash_hex = sha256.hexdigest()
+
+    # Convert the hexadecimal hash to an integer
+    hash_int = int(hash_hex, 16)
+
+    return hash_int
+
+
 class Splitter:
     def __init__(self):
         self.context = zmq.Context()
@@ -43,9 +59,10 @@ class Mapper:
             words = sentence.split(' ')
             for word in words:
                 # Determine counter_id by hashing the word
-                counter_id = hash(word) % self.reducercount
+                reducer_id = string_to_integer_hash(word) % self.reducercount
+                print("sending word '" + word + "' to reducer " + str( reducer_id ))
                 # Send word with counter_id
-                self.publisher.send_string(f"{counter_id}:{word}")
+                self.publisher.send_string(f"{reducer_id}:{word}")
                 time.sleep(1)  # wait for a second before sending the next word
 
 
@@ -66,4 +83,7 @@ class Reducer:
             # Split the message into counter_id and word
             _, word = message.split(':')
             self.word_counts[word] = self.word_counts.get(word, 0) + 1
-            print(f"Counter {self.id} Word counts: {self.word_counts}")
+            print("Counter {self.id} Word counts:")
+            words_with_counts = [f"{word}: {count}" for word, count in self.word_counts.items()]
+            for i in range(0, len(words_with_counts), 5):
+                print("\t".join(words_with_counts[i:i+5]))
