@@ -3,6 +3,7 @@ import time
 import hashlib
 
 MAPPERADDRESS = "tcp://127.0.0.1"
+SPLITTERADDRESS = "tcp://127.0.0.1:5556"
 
 mapperports = [
     "5557",
@@ -10,19 +11,14 @@ mapperports = [
     "5559",
 ]
 
-SPLITTERADDRESS = "tcp://127.0.0.1:5556"
-
 
 def string_to_integer_hash(input_string):
-    # Create a SHA-256 hash object
     sha256 = hashlib.sha256()
 
     # Update the hash object with the input string's bytes
     sha256.update(input_string.encode('utf-8'))
-
     # Get the hexadecimal representation of the hash
     hash_hex = sha256.hexdigest()
-
     # Convert the hexadecimal hash to an integer
     hash_int = int(hash_hex, 16)
 
@@ -36,7 +32,7 @@ class Splitter:
         self.publisher.bind(SPLITTERADDRESS)
 
     def start(self):
-        with open('sentences.txt', 'r') as file:
+        with open('sentences.txt', 'r', encoding='utf-8') as file:
             sentences = file.read().split('.')
             for sentence in sentences:
                 self.publisher.send_string(sentence)
