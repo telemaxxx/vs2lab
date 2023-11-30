@@ -20,7 +20,7 @@ class ChordNode:
 
     def __init__(self, channel):
         """
-        :param channel: a communication chanel instance to be used
+        :param channel: a communication channel instance to be used
         """
         self.channel = channel  # Create reference to communication channel
 

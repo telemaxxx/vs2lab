@@ -1,6 +1,6 @@
-import zmq
 import time
 import hashlib
+import zmq
 
 MAPPERADDRESS = "tcp://127.0.0.1"
 SPLITTERADDRESS = "tcp://127.0.0.1:5556"
@@ -37,7 +37,7 @@ class Splitter:
             for sentence in sentences:
                 self.publisher.send_string(sentence)
                 # wait for a second before sending the next sentence
-                time.sleep(1)
+                time.sleep(0.1)
 
 
 class Mapper:
@@ -59,7 +59,7 @@ class Mapper:
                 print("sending word '" + word + "' to reducer " + str( reducer_id ))
                 # Send word with counter_id
                 self.publisher.send_string(f"{reducer_id}:{word}")
-                time.sleep(1)  # wait for a second before sending the next word
+                time.sleep(0.1)  # wait for a second before sending the next word
 
 
 class Reducer:
