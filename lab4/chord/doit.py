@@ -41,9 +41,7 @@ class DummyChordClient:
             self.channel.send_to(
                 [random_node], (constChord.LOOKUP_REQ, random_key))
             reply = self.channel.receive_from([random_node])
-            reply_type, reply_data = reply[1]
-            print(
-                f"Lookup for key {random_key} got {reply_type} with data {reply_data} from {random_node}")
+            print("received reply" + str( reply[1] ) + " from node " + str( reply[0] ))
             time.sleep(0.1)
 
         self.channel.send_to(  # a final multicast
