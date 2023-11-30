@@ -1,8 +1,9 @@
 import logging
 import random
 import time
+import threading
 
-from constMutex import ENTER, RELEASE, ALLOW
+from constMutex import ENTER, RELEASE, ALLOW, HEARTBEAT
 
 
 class Process:
@@ -37,6 +38,7 @@ class Process:
         self.process_id = self.channel.join('proc')  # Find out who you are
         self.all_processes: list = []  # All procs in the proc group
         self.other_processes: list = []  # Needed to multicast to others
+        self.heartbeat_timestamps = {}
         self.queue = []  # The request queue list
         self.clock = 0  # The current logical clock
         self.logger = logging.getLogger("vs2lab.lab5.mutex.process.Process")
@@ -89,9 +91,34 @@ class Process:
         all_have_answered = len(self.other_processes) == len(processes_with_later_message)
         return first_in_queue and all_have_answered
 
+
+    def __send_heartbeat(self):
+        self.clock = self.clock + 1  # Increment clock value
+        msg = (self.clock, self.process_id, HEARTBEAT)
+        self.channel.send_to(self.other_processes, msg)  # Send heartbeat
+
+    def start_heartbeat(self):
+            threading.Timer(2, self.start_heartbeat).start()
+            self.__send_heartbeat()
+
+    def remove_process(self, process_id):
+        print("Removing process: ", process_id)
+        if process_id in self.other_processes:
+            self.other_processes.remove(process_id)
+        self.queue = [msg for msg in self.queue if msg[1] != process_id]
+        if process_id in self.heartbeat_timestamps:
+            del self.heartbeat_timestamps[process_id]
+
+    def __detect_failures(self):
+        current_time = time.time()
+        for process_id, last_heartbeat in list(self.heartbeat_timestamps.items()):
+            if current_time - last_heartbeat > 10:
+                self.remove_process(process_id)
+
+
     def __receive(self):
          # Pick up any message
-        _receive = self.channel.receive_from(self.other_processes, 10) 
+        _receive = self.channel.receive_from(self.other_processes, 10)
         if _receive:
             msg = _receive[1]
 
@@ -104,6 +131,8 @@ class Process:
                 else "ALLOW" if msg[2] == ALLOW
                 else "RELEASE", self.__mapid(msg[1])))
 
+            self.__detect_failures()
+
             if msg[2] == ENTER:
                 self.queue.append(msg)  # Append an ENTER request
                 # and unconditionally allow (don't want to access CS oneself)
@@ -114,9 +143,11 @@ class Process:
                 # assure release requester indeed has access (his ENTER is first in queue)
                 assert self.queue[0][1] == msg[1] and self.queue[0][2] == ENTER, 'State error: inconsistent remote RELEASE'
                 del (self.queue[0])  # Just remove first message
+            elif msg[2] == HEARTBEAT:
+                self.heartbeat_timestamps[msg[1]] = time.time()
 
             self.__cleanup_queue()  # Finally sort and cleanup the queue
-        else:        
+        else:
             self.logger.warning("{} timed out on RECEIVE.".format(self.__mapid()))
 
     def init(self):
@@ -133,6 +164,7 @@ class Process:
                          .format(self.process_id, self.__mapid()))
 
     def run(self):
+        self.start_heartbeat()
         while True:
             # Enter the critical section if there are more than one process left
             # and random is true
