@@ -9,6 +9,7 @@ Simple implementation of a chord DHT (distributed hash table)
 """
 
 import logging
+import random
 
 import constChord
 
@@ -136,6 +137,11 @@ class ChordNode:
             message = self.channel.receive_from_any()  # Wait for any request
             sender: str = message[0]  # Identify the sender
             request = message[1]  # And the actual request
+            if request[0] not in [constChord.STOP, constChord.LOOKUP_REQ, constChord.JOIN, constChord.LEAVE]:
+                print(sender, message, request)
+                # If sender is a node (that stays in the ring) then update known nodes
+                if request[0] != constChord.LEAVE and self.channel.channel.sismember('node', sender):
+                    self.add_node(sender)  # remember sender node
 
             # If sender is a node (that stays in the ring) then update known nodes
             if request[0] != constChord.LEAVE and self.channel.channel.sismember('node', sender):
@@ -150,9 +156,16 @@ class ChordNode:
                 self.logger.info("Node {:04n} received LOOKUP {:04n} from {:04n}."
                                  .format(self.node_id, int(request[1]), int(sender)))
 
-                # look up and return local successor 
+                # look up and return local successor
                 next_id: int = self.local_successor_node(request[1])
-                self.channel.send_to([sender], (constChord.LOOKUP_REP, next_id))
+                if next_id == self.node_id:
+                    self.channel.send_to([sender], (constChord.LOOKUP_REP, next_id))
+                else:
+                    # wait for a reply on the recursive request and relay it to sender
+                    self.logger.info("Relaying lookup request from node {:04n} to node {}.".format(int(sender), next_id))
+                    self.channel.send_to([str(next_id)], (constChord.LOOKUP_REQ, request[1]))
+                    reply = self.channel.receive_from([str( next_id )])
+                    self.channel.send_to([sender], reply[1])
 
                 # Finally do a sanity check
                 if not self.channel.exists(next_id):  # probe for existence
